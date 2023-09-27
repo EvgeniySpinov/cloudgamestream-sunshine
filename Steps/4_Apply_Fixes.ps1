@@ -20,7 +20,7 @@ Add-Routes
 Set-ActivationSettings
 slmgr //B /ato
 
-Write-Host "Setting resolution to 1080p."
+Write-Host "Switching display to internal"
 displayswitch.exe /internal
-Start-Sleep -Seconds 6
-Set-DisplayResolution -Width 1920 -Height 1080 -Force
+# Start-Sleep -Seconds 6
+# Set-DisplayResolution -Width 1920 -Height 1080 -Force

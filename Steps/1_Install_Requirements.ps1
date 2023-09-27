@@ -23,7 +23,7 @@ $InstallAudio = (Read-Host "You need to have an audio interface installed for Ga
 $InstallVideo = (Read-Host "You also need the NVIDIA vGaming Drivers installed. Installing will reboot your machine. Install the tested and recommended ones? (y/n)").ToLower() -eq "y"
 $InstallGamepad = (Read-Host "Would you like to install ViGEmBus for gamepad and controller support? (y/n)").ToLower() -eq "y"
 
-Download-File "https://github.com/loki-47-6F-64/sunshine/releases/download/v0.8.0/Sunshine-Windows.zip" "$WorkDir\Sunshine-Windows.zip" "Sunshine Moonlight Host v0.8.0"
+Download-File "https://github.com/LizardByte/Sunshine/releases/download/v0.20.0/sunshine-windows-portable.zip" "$WorkDir\Sunshine-Windows.zip" "Sunshine Moonlight Host v0.8.0"
 Download-File "https://aka.ms/vs/16/release/vc_redist.x86.exe" "$WorkDir\redist_x86.exe" "Visual C++ Redist 2015-19 x86"
 if($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') { Download-File "https://aka.ms/vs/16/release/vc_redist.x64.exe" "$WorkDir\redist_x64.exe" "Visual C++ Redist 2015-19 x64" }
 if($InstallAudio) { Download-File "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack43.zip" "$WorkDir\vbcable.zip" "VBCABLE" }
@@ -31,9 +31,10 @@ if($InstallVideo) {
     $WebContent = Invoke-WebRequest -Uri 'https://nvidia-gaming.s3.amazonaws.com/?list-type=2&prefix=windows/latest&encoding-type=url&max-keys=1&start-after=windows/latest/'
     [xml]$xmlVideoDriverS3 = $WebContent.Content
     $VideoDriverURL = "https://nvidia-gaming.s3.amazonaws.com/" + $xmlVideoDriverS3.ListBucketResult.Contents.Key
-    Download-File "$VideoDriverURL" "$WorkDir\Drivers.zip" "NVIDIA vGaming Drivers"
+    $VideoDriverFileName = ([uri]$VideoDriverURL).Segments[-1]
+    Download-File "$VideoDriverURL" "$WorkDir\$VideoDriverFileName" "NVIDIA vGaming Drivers"
 }
-if($InstallGamepad) { Download-File "https://github.com/ViGEm/ViGEmBus/releases/download/setup-v1.16.116/ViGEmBus_Setup_1.16.116.exe" "$WorkDir\ViGEmBus.exe" "ViGEmBus v1.16.116" }
+if($InstallGamepad) { Download-File "https://github.com/nefarius/ViGEmBus/releases/download/v1.20.432.0/ViGEmBus_1.20.432_x64_x86_arm64.exe" "$WorkDir\ViGEmBus.exe" "ViGEmBus v1.16.116" }
 
 Write-Host "Extracting Sunshine..."
 
@@ -88,8 +89,15 @@ if($InstallVideo) {
         $principal = New-ScheduledTaskPrincipal -GroupId "BUILTIN\Administrators" -RunLevel Highest
         Register-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -TaskName "GSSetup" -Description "GSSetup" | Out-Null
     }
-    Expand-Archive -Path "$WorkDir\Drivers.zip" -DestinationPath "$WorkDir\Drivers"
-    $InstallPath = Resolve-Path "$WorkDir\Drivers\Windows\*server2019_64bit_international.exe"
+    $VideoDriverFileExt = (Split-Path -Path $VideoDriverFileName -Leaf).Split(".")[-1] 
+    if($VideoDriverFileExt -eq 'ZIP'){
+        Expand-Archive -Path "$WorkDir\$VideoDriverFileName" -DestinationPath "$WorkDir\Drivers"
+        $InstallPath = Resolve-Path "$WorkDir\Drivers\Windows\*server2019_64bit_international.exe"
+    }
+    else{
+        $InstallPath =  "$WorkDir\$VideoDriverFileName"
+    }
+ 
     Write-Host "Installing NVIDIA vGaming drivers. This may take a while..." -ForegroundColor Green
     $ExitCode = (Start-Process -FilePath "$InstallPath" -ArgumentList "/s","/clean" -NoNewWindow -Wait -PassThru).ExitCode
     if($ExitCode -eq 0) {
